@@ -1,4 +1,18 @@
 // ======================================================
+// SUPABASE CONNECTION
+// ======================================================
+
+const SUPABASE_URL = "https://mqouloxhtwsbprrmicrs.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_d22MlSttvcFEa3tFKVHYyQ_AhZVd9ZU";
+
+const supabaseClient =
+    supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+// ======================================================
 // EXPENSEFLOW PRO
 // LOCAL VERSION - NO SUPABASE
 // ======================================================
@@ -13,43 +27,8 @@ const CURRENT_USER_KEY = "expenseflow_current_user";
 // ======================================================
 
 function initializeApp() {
-
-    let users = [];
-
-    try {
-        users =
-            JSON.parse(
-                localStorage.getItem(USERS_KEY)
-            ) || [];
-    } catch (error) {
-        users = [];
-    }
-
-    const adminExists =
-        users.some(
-            user =>
-                user.username === "admin" &&
-                user.role === "admin"
-        );
-
-    if (!adminExists) {
-
-        users.unshift({
-
-            id: "admin-001",
-
-            username: "admin",
-
-            password: "Admin@123",
-
-            role: "admin",
-
-            active: true
-
-        });
-
-        saveUsers(users);
-    }
+    // Supabase Auth अब users manage karta hai.
+    // LocalStorage me automatic admin create nahi hoga.
 }
 
 
@@ -115,7 +94,7 @@ function getCurrentUser() {
 // LOGIN
 // ======================================================
 
-function login() {
+async function login() {
 
     const usernameInput =
         document.getElementById("username");
@@ -142,17 +121,28 @@ function login() {
         return;
     }
 
-    const users = getUsers();
+    // Username ko Supabase Auth email se map karna
+    let email = "";
 
-    const user =
-        users.find(
-            u =>
-                String(u.username).toLowerCase() ===
-                username.toLowerCase() &&
-                u.password === password
+    if (username.toLowerCase() === "admin") {
+        email = "rkver2005@gmail.com";
+    } else {
+        alert(
+            "Abhi sirf admin Supabase login configured hai."
         );
+        return;
+    }
 
-    if (!user) {
+    // Supabase Auth login
+    const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+    if (error) {
+
+        console.error("Supabase Login Error:", error);
 
         alert(
             "Invalid username or password."
@@ -161,15 +151,27 @@ function login() {
         return;
     }
 
-    if (user.active === false) {
+    if (!data.user) {
 
         alert(
-            "This account is inactive."
+            "Login failed. Please try again."
         );
 
         return;
     }
 
+    // Current user information
+    const supabaseUser = data.user;
+
+    const user = {
+        id: supabaseUser.id,
+        username: "admin",
+        email: supabaseUser.email,
+        role: "admin",
+        active: true
+    };
+
+    // Existing app ko current user dena
     localStorage.setItem(
         CURRENT_USER_KEY,
         JSON.stringify(user)
@@ -186,28 +188,58 @@ function login() {
 // LOGOUT
 // ======================================================
 
-function logout() {
+async function logout() {
+
+    const {
+        error
+    } =
+        await supabaseClient.auth.signOut();
+
+    if (error) {
+
+        console.error(
+            "Supabase Logout Error:",
+            error
+        );
+
+        alert(
+            "Logout nahi hua.\n\n" +
+            error.message
+        );
+
+        return;
+    }
 
     localStorage.removeItem(
         CURRENT_USER_KEY
     );
 
     const dashboard =
-        document.getElementById("dashboard");
+        document.getElementById(
+            "dashboard"
+        );
 
     const loginPage =
-        document.getElementById("loginPage");
+        document.getElementById(
+            "loginPage"
+        );
 
     if (dashboard) {
-        dashboard.classList.add("hidden");
+        dashboard.classList.add(
+            "hidden"
+        );
     }
 
     if (loginPage) {
-        loginPage.classList.remove("hidden");
+        loginPage.classList.remove(
+            "hidden"
+        );
     }
 
     const adminPanel =
-        document.getElementById("adminPanel");
+        document.getElementById(
+            "adminPanel"
+        );
 
     if (adminPanel) {
         adminPanel.remove();
@@ -398,24 +430,77 @@ function changeMonth() {
 // USER EXPENSES
 // ======================================================
 
-function getUserExpenses() {
+async function getUserExpenses() {
 
-    const user =
-        getCurrentUser();
+    const {
+        data: {
+            user: supabaseUser
+        },
+        error: userError
+    } =
+        await supabaseClient.auth.getUser();
 
-    if (!user) return [];
-
-    const expenses =
-        getExpenses();
-
-    if (user.role === "admin") {
-
-        return expenses;
+    if (
+        userError ||
+        !supabaseUser
+    ) {
+        return [];
     }
 
-    return expenses.filter(
-        expense =>
-            expense.userId === user.id
+    const {
+        data: expenses,
+        error
+    } =
+        await supabaseClient
+            .from("expenses")
+            .select("*")
+            .eq(
+                "user_id",
+                supabaseUser.id
+            )
+            .order(
+                "expense_date",
+                {
+                    ascending: false
+                }
+            );
+
+    if (error) {
+
+        console.error(
+            "Supabase Fetch Error:",
+            error
+        );
+
+        return [];
+    }
+
+    return expenses.map(
+        expense => ({
+
+            id:
+                expense.id,
+
+            userId:
+                expense.user_id,
+
+            amount:
+                Number(
+                    expense.amount
+                ),
+
+            category:
+                expense.category,
+
+            date:
+                expense.expense_date,
+
+            where:
+                expense.where,
+
+            createdAt:
+                expense.created_at
+        })
     );
 }
 
@@ -491,7 +576,7 @@ function closeExpense() {
 // SAVE EXPENSE
 // ======================================================
 
-function saveExpense() {
+async function saveExpense() {
 
     const amountInput =
         document.getElementById("amount");
@@ -500,9 +585,7 @@ function saveExpense() {
         document.getElementById("category");
 
     const dateInput =
-        document.getElementById(
-            "expenseDate"
-        );
+        document.getElementById("expenseDate");
 
     const whereInput =
         document.getElementById("where");
@@ -565,10 +648,19 @@ function saveExpense() {
         return;
     }
 
-    const user =
-        getCurrentUser();
+    // Supabase se current logged-in user
+    const {
+        data: {
+            user: supabaseUser
+        },
+        error: userError
+    } =
+        await supabaseClient.auth.getUser();
 
-    if (!user) {
+    if (
+        userError ||
+        !supabaseUser
+    ) {
 
         alert(
             "Please login first."
@@ -577,40 +669,51 @@ function saveExpense() {
         return;
     }
 
-    const expenses =
-        getExpenses();
+    // Supabase expenses table me save
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+            .from("expenses")
+            .insert([
+                {
+                    user_id:
+                        supabaseUser.id,
 
-    const newExpense = {
+                    amount:
+                        amount,
 
-        id:
-            "EXP-" +
-            Date.now(),
+                    category:
+                        category,
 
-        userId:
-            user.id,
+                    expense_date:
+                        date,
 
-        amount:
-            amount,
+                    where:
+                        where
+                }
+            ])
+            .select();
 
-        category:
-            category,
+    if (error) {
 
-        date:
-            date,
+        console.error(
+            "Supabase Expense Error:",
+            error
+        );
 
-        where:
-            where,
+        alert(
+            "Expense save nahi hua.\n\n" +
+            error.message
+        );
 
-        createdAt:
-            new Date().toISOString()
-    };
+        return;
+    }
 
-    expenses.push(
-        newExpense
-    );
-
-    saveExpenses(
-        expenses
+    console.log(
+        "Expense saved to Supabase:",
+        data
     );
 
     amountInput.value = "";
@@ -631,30 +734,22 @@ function saveExpense() {
 // DELETE EXPENSE
 // ======================================================
 
-function deleteExpense(id) {
+async function deleteExpense(id) {
 
-    const user =
-        getCurrentUser();
-
-    if (!user) return;
-
-    const expenses =
-        getExpenses();
-
-    const expense =
-        expenses.find(
-            e => e.id === id
-        );
-
-    if (!expense) return;
+    const {
+        data: {
+            user: supabaseUser
+        },
+        error: userError
+    } =
+        await supabaseClient.auth.getUser();
 
     if (
-        user.role !== "admin" &&
-        expense.userId !== user.id
+        userError ||
+        !supabaseUser
     ) {
-
         alert(
-            "You cannot delete this expense."
+            "Please login first."
         );
 
         return;
@@ -668,17 +763,38 @@ function deleteExpense(id) {
         return;
     }
 
-    const updated =
-        expenses.filter(
-            expense =>
-                expense.id !== id
+    const {
+        error
+    } =
+        await supabaseClient
+            .from("expenses")
+            .delete()
+            .eq(
+                "id",
+                id
+            )
+            .eq(
+                "user_id",
+                supabaseUser.id
+            );
+
+    if (error) {
+
+        console.error(
+            "Supabase Delete Error:",
+            error
         );
 
-    saveExpenses(
-        updated
-    );
+        alert(
+            "Expense delete nahi hua.\n\n" +
+            error.message
+        );
 
-    renderDashboard();
+        return;
+    }
+
+    await renderDashboard();
+
 }
 
 
@@ -686,10 +802,7 @@ function deleteExpense(id) {
 // DASHBOARD
 // ======================================================
 
-function renderDashboard() {
-
-    const expenses =
-        getUserExpenses();
+async function renderDashboard() {
 
     const monthFilter =
         document.getElementById(
@@ -701,13 +814,17 @@ function renderDashboard() {
     const selectedMonth =
         monthFilter.value;
 
+    const expenses =
+        await getUserExpenses();
+
     const monthlyExpenses =
         expenses.filter(
             expense =>
-                String(expense.date)
-                    .startsWith(
-                        selectedMonth
-                    )
+                String(
+                    expense.date
+                ).startsWith(
+                    selectedMonth
+                )
         );
 
     updateKPIs(
@@ -2081,18 +2198,55 @@ function escapeHTML(
 
 document.addEventListener(
     "DOMContentLoaded",
-    function () {
+    async function () {
 
         initializeApp();
 
-        const currentUser =
-            getCurrentUser();
+        const {
+            data: {
+                session
+            }
+        } =
+            await supabaseClient.auth.getSession();
 
-        if (currentUser) {
+        if (session && session.user) {
+
+            const user = {
+                id:
+                    session.user.id,
+
+                username:
+                    session.user.email ===
+                    "rkver2005@gmail.com"
+                        ? "admin"
+                        : session.user.email,
+
+                email:
+                    session.user.email,
+
+                role:
+                    session.user.email ===
+                    "rkver2005@gmail.com"
+                        ? "admin"
+                        : "user",
+
+                active:
+                    true
+            };
+
+            localStorage.setItem(
+                CURRENT_USER_KEY,
+                JSON.stringify(user)
+            );
 
             showDashboard();
 
         } else {
+
+            // Old local Admin session remove
+            localStorage.removeItem(
+                CURRENT_USER_KEY
+            );
 
             const loginPage =
                 document.getElementById(
