@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>ExpenseFlow Pro</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<!-- ================= LOGIN ================= -->
+
+<section id="loginPage" class="login-page">
+
+    <div class="login-card">
+
+        <div class="login-logo">
+            <div class="logo-mark">EF</div>
+            <div>
+                <h1>ExpenseFlow <span>PRO</span></h1>
+                <p>Smart Expense Management</p>
+            </div>
+        </div>
+
+        <div class="login-title">
+            <h2>Welcome back 👋</h2>
+            <p>Login to manage your expenses</p>
+        </div>
+
+        <div class="form-group">
+
+            <label>Username</label>
+
+            <input
+                type="text"
+                id="username"
+                placeholder="Enter username"
+                autocomplete="username"
+            >
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Password</label>
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Enter password"
+                autocomplete="current-password"
+            >
+
+        </div>
+
+        <button
+            class="primary-btn login-btn"
+            onclick="login()"
+        >
+            Login
+        </button>
+
+        <div class="demo-login">
+            Demo Login:
+            <strong>admin</strong> /
+            <strong>Admin@123</strong>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= DASHBOARD ================= -->
+
+<section id="dashboard" class="dashboard hidden">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-icon">EF</div>
+
+            <div>
+                <div class="brand-name">
+                    ExpenseFlow
+                </div>
+
+                <div class="brand-pro">
+                    PRO
+                </div>
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a href="#" class="nav-item active">
+                <span>▦</span>
+                Dashboard
+            </a>
+
+            <a
+                href="#"
+                class="nav-item"
+                onclick="openExpense(); return false;"
+            >
+                <span>＋</span>
+                Add Expense
+            </a>
+
+            <a
+                href="#transactions"
+                class="nav-item"
+            >
+                <span>▤</span>
+                Transactions
+            </a>
+
+            <a
+                href="#analytics"
+                class="nav-item"
+            >
+                <span>◔</span>
+                Analytics
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+            <div class="profile-box">
+
+                <div class="avatar">
+                    A
+                </div>
+
+                <div class="profile-info">
+
+                    <strong>Admin</strong>
+
+                    <small>
+                        Administrator
+                    </small>
+
+                </div>
+
+            </div>
+
+            <button
+                class="logout-btn"
+                onclick="logout()"
+            >
+                ↪ Logout
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main class="main-content">
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <div>
+
+                <div class="breadcrumb">
+                    Workspace / Dashboard
+                </div>
+
+                <h1>Expense Dashboard</h1>
+
+                <p>
+                    Track, analyze and manage your spending.
+                </p>
+
+            </div>
+
+
+            <div class="top-actions">
+
+                <button
+                    class="secondary-btn"
+                    onclick="exportPDF()"
+                >
+                    ⬇ Export PDF
+                </button>
+
+                <button
+                    class="primary-btn"
+                    onclick="openExpense()"
+                >
+                    ＋ Add Expense
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- MONTH FILTER -->
+
+        <div class="filter-bar">
+
+            <div class="filter-left">
+
+                <span class="filter-label">
+                    Viewing:
+                </span>
+
+                <input
+                    type="month"
+                    id="monthFilter"
+                    onchange="changeMonth()"
+                >
+
+            </div>
+
+            <div class="month-status" id="monthStatus">
+                Current Month
+            </div>
+
+        </div>
+
+
+        <!-- KPI CARDS -->
+
+        <section class="kpi-grid">
+
+            <div class="kpi-card">
+
+                <div class="kpi-top">
+
+                    <div class="kpi-icon blue">
+                        ₹
+                    </div>
+
+                    <span class="kpi-badge">
+                        Total
+                    </span>
+
+                </div>
+
+                <div class="kpi-title">
+                    Total Spend
+                </div>
+
+                <div
+                    class="kpi-value"
+                    id="totalSpend"
+                >
+                    ₹0.00
+                </div>
+
+                <div class="kpi-sub">
+                    Selected month
+                </div>
+
+            </div>
+
+
+            <div class="kpi-card">
+
+                <div class="kpi-top">
+
+                    <div class="kpi-icon purple">
+                        #
+                    </div>
+
+                    <span class="kpi-badge">
+                        Count
+                    </span>
+
+                </div>
+
+                <div class="kpi-title">
+                    Transactions
+                </div>
+
+                <div
+                    class="kpi-value"
+                    id="totalTransactions"
+                >
+                    0
+                </div>
+
+                <div class="kpi-sub">
+                    Recorded expenses
+                </div>
+
+            </div>
+
+
+            <div class="kpi-card">
+
+                <div class="kpi-top">
+
+                    <div class="kpi-icon orange">
+                        ★
+                    </div>
+
+                    <span class="kpi-badge">
+                        Top
+                    </span>
+
+                </div>
+
+                <div class="kpi-title">
+                    Top Category
+                </div>
+
+                <div
+                    class="kpi-value category-value"
+                    id="topCategory"
+                >
+                    -
+                </div>
+
+                <div class="kpi-sub">
+                    Highest spending
+                </div>
+
+            </div>
+
+
+            <div class="kpi-card">
+
+                <div class="kpi-top">
+
+                    <div class="kpi-icon green">
+                        ↗
+                    </div>
+
+                    <span class="kpi-badge">
+                        Avg
+                    </span>
+
+                </div>
+
+                <div class="kpi-title">
+                    Average Expense
+                </div>
+
+                <div
+                    class="kpi-value"
+                    id="dailyAverage"
+                >
+                    ₹0.00
+                </div>
+
+                <div class="kpi-sub">
+                    Per transaction
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ANALYTICS -->
+
+        <section
+            class="analytics-grid"
+            id="analytics"
+        >
+
+            <!-- DONUT -->
+
+            <div class="dashboard-card chart-card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <h2>
+                            Spending Breakdown
+                        </h2>
+
+                        <p>
+                            Category-wise distribution
+                        </p>
+
+                    </div>
+
+                    <div class="card-menu">
+                        ●●●
+                    </div>
+
+                </div>
+
+
+                <div class="donut-wrapper">
+
+                    <canvas
+                        id="categoryChart"
+                    ></canvas>
+
+                    <div class="donut-center">
+
+                        <span>Total</span>
+
+                        <strong
+                            id="chartTotal"
+                        >
+                            ₹0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="categoryBreakdown"
+                    class="category-breakdown"
+                ></div>
+
+            </div>
+
+
+            <!-- MONTHLY -->
+
+            <div class="dashboard-card chart-card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <h2>
+                            Spending Overview
+                        </h2>
+
+                        <p>
+                            Daily spending activity
+                        </p>
+
+                    </div>
+
+                    <div class="chart-period">
+                        Monthly
+                    </div>
+
+                </div>
+
+                <div class="line-chart-wrapper">
+
+                    <canvas
+                        id="monthlyChart"
+                    ></canvas>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- QUICK ACTION -->
+
+        <section class="quick-section">
+
+            <div>
+
+                <h2>
+                    Quick Actions
+                </h2>
+
+                <p>
+                    Manage your expenses quickly.
+                </p>
+
+            </div>
+
+
+            <div class="quick-actions">
+
+                <button
+                    class="quick-btn"
+                    onclick="openExpense()"
+                >
+                    <span>＋</span>
+                    Add Expense
+                </button>
+
+                <button
+                    class="quick-btn"
+                    onclick="exportPDF()"
+                >
+                    <span>↓</span>
+                    Export Report
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- TRANSACTIONS -->
+
+        <section
+            class="dashboard-card transactions-card"
+            id="transactions"
+        >
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>
+                        Recent Transactions
+                    </h2>
+
+                    <p>
+                        Your latest recorded expenses
+                    </p>
+
+                </div>
+
+                <span
+                    class="transaction-count"
+                    id="transactionCount"
+                >
+                    0 transactions
+                </span>
+
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Date</th>
+
+                            <th>Where</th>
+
+                            <th>Category</th>
+
+                            <th>Amount</th>
+
+                            <th>Action</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="expenseTable">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- FOOTER -->
+
+        <footer class="dashboard-footer">
+
+            <span>
+                ExpenseFlow PRO
+            </span>
+
+            <span>
+                Smart Expense Management
+            </span>
+
+        </footer>
+
+    </main>
+
+</section>
+
+
+<!-- ================= ADD EXPENSE MODAL ================= -->
+
+<div
+    id="expenseModal"
+    class="modal hidden"
+>
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2>
+                    Add New Expense
+                </h2>
+
+                <p>
+                    Record your spending details
+                </p>
+
+            </div>
+
+            <button
+                class="close-btn"
+                onclick="closeExpense()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="expense-form">
+
+            <div class="form-group">
+
+                <label>
+                    Amount
+                </label>
+
+                <div class="input-money">
+
+                    <span>₹</span>
+
+                    <input
+                        type="number"
+                        id="amount"
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Category
+                </label>
+
+                <select id="category">
+
+                    <option value="Food">
+                        Food
+                    </option>
+
+                    <option value="Travel">
+                        Travel
+                    </option>
+
+                    <option value="Shopping">
+                        Shopping
+                    </option>
+
+                    <option value="Bills">
+                        Bills
+                    </option>
+
+                    <option value="Health">
+                        Health
+                    </option>
+
+                    <option value="Education">
+                        Education
+                    </option>
+
+                    <option value="Entertainment">
+                        Entertainment
+                    </option>
+
+                    <option value="Other">
+                        Other
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Date
+                </label>
+
+                <input
+                    type="date"
+                    id="expenseDate"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Where Spent
+                </label>
+
+                <input
+                    type="text"
+                    id="where"
+                    placeholder="e.g. Restaurant, Amazon, Petrol..."
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="modal-actions">
+
+            <button
+                class="cancel"
+                onclick="closeExpense()"
+            >
+                Cancel
+            </button>
+
+            <button
+                class="primary-btn"
+                onclick="saveExpense()"
+            >
+                Save Expense
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+<script src="app.js"></script>
+
+
+
+
+</html>
