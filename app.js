@@ -2,10 +2,11 @@
 // SUPABASE CONNECTION
 // ======================================================
 
-const SUPABASE_URL = "https://mqouloxhtwsbprrmicrs.supabase.co";
+const SUPABASE_URL =
+    "https://tcfogqbmjzfwgeqebndb.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
-    "sb_publishable_d22MlSttvcFEa3tFKVHYyQ_AhZVd9ZU";
+    "sb_publishable_YpM0IqnQYYdQYroahAmnpQ_QzYs7nTm";
 
 const supabaseClient =
     supabase.createClient(
@@ -22,13 +23,16 @@ const USERS_KEY = "expenseflow_users";
 const CURRENT_USER_KEY = "expenseflow_current_user";
 
 
+
+
 // ======================================================
 // INITIALIZE APP
 // ======================================================
 
 function initializeApp() {
-    // Supabase Auth अब users manage karta hai.
-    // LocalStorage me automatic admin create nahi hoga.
+
+    // Supabase Auth is now the source of truth.
+    // No local admin account is created here.
 }
 
 
@@ -91,7 +95,7 @@ function getCurrentUser() {
 
 
 // ======================================================
-// LOGIN
+// SUPABASE LOGIN
 // ======================================================
 
 async function login() {
@@ -106,35 +110,21 @@ async function login() {
         return;
     }
 
-    const username =
+    const email =
         usernameInput.value.trim();
 
     const password =
         passwordInput.value;
 
-    if (!username || !password) {
-
-        alert(
-            "Username aur password enter karo."
-        );
-
+    if (!email || !password) {
+        alert("Email aur password enter karo.");
         return;
     }
 
-    // Username ko Supabase Auth email se map karna
-    let email = "";
-
-    if (username.toLowerCase() === "admin") {
-        email = "rkver2005@gmail.com";
-    } else {
-        alert(
-            "Abhi sirf admin Supabase login configured hai."
-        );
-        return;
-    }
-
-    // Supabase Auth login
-    const { data, error } =
+    const {
+        data,
+        error
+    } =
         await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
@@ -142,45 +132,68 @@ async function login() {
 
     if (error) {
 
-        console.error("Supabase Login Error:", error);
+        console.error(
+            "Supabase Login Error:",
+            error
+        );
 
         alert(
-            "Invalid username or password."
+            "Login failed.\n\n" +
+            error.message
         );
 
         return;
     }
 
-    if (!data.user) {
+    if (!data || !data.user) {
 
         alert(
-            "Login failed. Please try again."
+            "Login failed. User data nahi mila."
         );
 
         return;
     }
 
-    // Current user information
-    const supabaseUser = data.user;
+    const supabaseUser =
+        data.user;
 
-    const user = {
-        id: supabaseUser.id,
-        username: "admin",
-        email: supabaseUser.email,
-        role: "admin",
-        active: true
+    // Admin account identification
+    const isAdmin =
+        supabaseUser.email ===
+        "rkver2005@gmail.com";
+
+    const currentUser = {
+
+        id:
+            supabaseUser.id,
+
+        username:
+            isAdmin
+                ? "admin"
+                : supabaseUser.email,
+
+        email:
+            supabaseUser.email,
+
+        role:
+            isAdmin
+                ? "admin"
+                : "user",
+
+        active:
+            true
     };
 
-    // Existing app ko current user dena
+    // UI/profile ke liye session mirror
     localStorage.setItem(
         CURRENT_USER_KEY,
-        JSON.stringify(user)
+        JSON.stringify(currentUser)
     );
-
-    showDashboard();
 
     usernameInput.value = "";
     passwordInput.value = "";
+
+    showDashboard();
 }
 
 
@@ -2205,28 +2218,46 @@ document.addEventListener(
         const {
             data: {
                 session
-            }
+            },
+            error
         } =
             await supabaseClient.auth.getSession();
 
-        if (session && session.user) {
+        if (error) {
 
-            const user = {
+            console.error(
+                "Supabase Session Error:",
+                error
+            );
+        }
+
+        if (
+            session &&
+            session.user
+        ) {
+
+            const supabaseUser =
+                session.user;
+
+            const isAdmin =
+                supabaseUser.email ===
+                "rkver2005@gmail.com";
+
+            const currentUser = {
+
                 id:
-                    session.user.id,
+                    supabaseUser.id,
 
                 username:
-                    session.user.email ===
-                    "rkver2005@gmail.com"
+                    isAdmin
                         ? "admin"
-                        : session.user.email,
+                        : supabaseUser.email,
 
                 email:
-                    session.user.email,
+                    supabaseUser.email,
 
                 role:
-                    session.user.email ===
-                    "rkver2005@gmail.com"
+                    isAdmin
                         ? "admin"
                         : "user",
 
@@ -2236,14 +2267,15 @@ document.addEventListener(
 
             localStorage.setItem(
                 CURRENT_USER_KEY,
-                JSON.stringify(user)
+                JSON.stringify(
+                    currentUser
+                )
             );
 
             showDashboard();
 
         } else {
 
-            // Old local Admin session remove
             localStorage.removeItem(
                 CURRENT_USER_KEY
             );
